@@ -34,7 +34,14 @@
     border-radius: 16px;
     padding: 16px;
     margin-bottom: 14px;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: rise .5s cubic-bezier(.22,.9,.36,1) forwards;
   }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  h1, .sub { opacity: 0; animation: rise .5s ease forwards; }
+  .sub { animation-delay: .08s; }
+  #done { animation: rise .45s ease forwards; }
   .q { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
   .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
   .scale { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -146,6 +153,12 @@ document.getElementById("dateline").textContent = "Сегодня " + now.getDat
 
 const root = document.getElementById("form");
 
+let cardIndex = 0;
+function stagger(card) {
+  card.style.animationDelay = Math.min(cardIndex * 70, 600) + "ms";
+  cardIndex++;
+}
+
 SCALES.forEach(s => {
   const card = document.createElement("div");
   card.className = "card";
@@ -156,14 +169,21 @@ SCALES.forEach(s => {
     const b = document.createElement("button");
     b.textContent = v;
     b.onclick = () => {
+      const firstAnswer = answers.scales[s.id] === undefined;
       answers.scales[s.id] = v;
       row.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
       b.classList.add("sel");
       if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      if (firstAnswer && card.nextElementSibling) {
+        setTimeout(() => {
+          card.nextElementSibling.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 250);
+      }
     };
     row.appendChild(b);
   }
   card.appendChild(row);
+  stagger(card);
   root.appendChild(card);
 });
 
@@ -190,6 +210,7 @@ CHECKS.forEach(c => {
     wrap.appendChild(b);
   });
   card.appendChild(wrap);
+  stagger(card);
   root.appendChild(card);
 });
 
@@ -201,6 +222,7 @@ TEXTS.forEach(t => {
   ta.placeholder = t.ph;
   ta.oninput = () => { answers.texts[t.id] = ta.value; };
   card.appendChild(ta);
+  stagger(card);
   root.appendChild(card);
 });
 
