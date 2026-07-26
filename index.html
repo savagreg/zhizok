@@ -27,49 +27,23 @@
     margin: 0 auto;
   }
   h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-  .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
-  h1, .sub { opacity: 0; animation: rise .5s ease forwards; }
-  .sub { animation-delay: .08s; }
-  @keyframes rise { to { opacity: 1; transform: none; } }
-
-  .section {
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .card {
     background: var(--card);
     border: 1px solid var(--line);
     border-radius: 16px;
-    margin-bottom: 12px;
-    overflow: hidden;
+    padding: 16px;
+    margin-bottom: 14px;
     opacity: 0;
     transform: translateY(16px);
     animation: rise .5s cubic-bezier(.22,.9,.36,1) forwards;
   }
-  .sechead {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: none;
-    border: none;
-    color: var(--text);
-    font-size: 16px;
-    font-weight: 700;
-    font-family: inherit;
-    padding: 16px;
-    cursor: pointer;
-  }
-  .secstate { font-size: 13px; font-weight: 600; color: var(--muted); transition: color .2s; }
-  .secstate.done { color: var(--accent); }
-  .secbody { display: none; padding: 0 14px 14px; }
-  .section.open .secbody { display: block; }
-
-  .card {
-    background: var(--card2);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-  }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  h1, .sub { opacity: 0; animation: rise .5s ease forwards; }
+  .sub { animation-delay: .08s; }
+  #done { animation: rise .45s ease forwards; }
   .q { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
-  .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
   .qrow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .bigval { font-size: 24px; font-weight: 700; color: var(--muted); min-width: 40px; text-align: right; transition: color .2s; }
   .bigval.set { color: var(--accent); }
@@ -85,7 +59,7 @@
   input[type=range]::-webkit-slider-runnable-track {
     height: 10px;
     border-radius: 6px;
-    background: linear-gradient(90deg, var(--fillc, var(--bg)) var(--p), var(--bg) var(--p));
+    background: linear-gradient(90deg, var(--fillc, var(--card2)) var(--p), var(--card2) var(--p));
     border: 1px solid var(--line);
   }
   input[type=range]::-webkit-slider-thumb {
@@ -104,7 +78,7 @@
     padding: 10px 14px;
     border-radius: 20px;
     border: 1px solid var(--line);
-    background: var(--bg);
+    background: var(--card2);
     color: var(--text);
     font-size: 14px;
     cursor: pointer;
@@ -114,7 +88,7 @@
   textarea {
     width: 100%;
     min-height: 76px;
-    background: var(--bg);
+    background: var(--card2);
     border: 1px solid var(--line);
     border-radius: 12px;
     color: var(--text);
@@ -139,7 +113,7 @@
   }
   .submit:disabled { opacity: .5; }
   .err { color: var(--red); font-size: 13.5px; text-align: center; margin-top: 10px; display: none; }
-  #done { display: none; text-align: center; padding-top: 90px; animation: rise .45s ease forwards; }
+  #done { display: none; text-align: center; padding-top: 90px; }
   #done .big { font-size: 52px; margin-bottom: 16px; }
   #done h2 { font-size: 21px; margin-bottom: 8px; }
   #done p { color: var(--muted); font-size: 15px; }
@@ -164,20 +138,20 @@
 <script>
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScHqljL698DGsNmir_faD6NED3xI06AO3XWW9hojHPWC2YL0w/formResponse";
 
-const Q = {
-  day:    { id: 1251479055, title: "Оценка дня", hint: "1 — худший день, 10 — лучший", from: 1, to: 10 },
-  energy: { id: 352003469,  title: "Энергия", hint: "1 — совсем без сил, 10 — полон энергии", from: 1, to: 10 },
-  stress: { id: 1656073886, title: "Стресс", hint: "1 — спокойный день, 10 — очень напряженный", from: 1, to: 10 },
-  anx:    { id: 505604006,  title: "Тревога о здоровье", hint: "0 — не думал об этом, 10 — сильно тревожился", from: 0, to: 10 },
-  sleep:  { id: 620105065,  title: "Качество сна прошлой ночью", hint: "1 — ужасно спал, 10 — отлично выспался", from: 1, to: 10 },
-  work:   { id: 1194878652, title: "Продуктивность в работе", hint: "1 — день впустую, 10 — очень продуктивно", from: 1, to: 10 }
-};
-const SYMPTOMS = { id: 119850202, title: "Что беспокоило сегодня?", hint: "Можно несколько", required: true,
-  opts: ["Ничего","Дискомфорт/покалывание справа под ребром","ЖКТ: тяжесть, вздутие","Головная боль","Спина / стопы","Признаки простуды"] };
-const HABITS = { id: 768640494, title: "Что было сегодня?", hint: "Отметь всё, что было", required: false,
-  opts: ["Кофе","Жирное / жареное","5000+ шагов","Силовая тренировка","Алкоголь","Поздний прием пищи","Лег после 01:00","Весь день за экраном","Время на улице"] };
-const RELATIONS = { id: 768640494, title: "Общение", hint: "Было ли сегодня", required: false, noOther: true,
-  opts: ["Общение с близкими"] };
+const SCALES = [
+  { id: 1251479055, title: "Оценка дня", hint: "1 — худший день, 10 — лучший", from: 1, to: 10 },
+  { id: 352003469,  title: "Энергия", hint: "1 — совсем без сил, 10 — полон энергии", from: 1, to: 10 },
+  { id: 1656073886, title: "Стресс", hint: "1 — спокойный день, 10 — очень напряженный", from: 1, to: 10 },
+  { id: 505604006,  title: "Тревога о здоровье", hint: "0 — не думал об этом, 10 — сильно тревожился", from: 0, to: 10 },
+  { id: 620105065,  title: "Качество сна прошлой ночью", hint: "1 — ужасно спал, 10 — отлично выспался", from: 1, to: 10 },
+  { id: 1194878652, title: "Продуктивность в работе", hint: "1 — день впустую, 10 — очень продуктивно", from: 1, to: 10 }
+];
+const CHECKS = [
+  { id: 119850202, title: "Что беспокоило сегодня?", hint: "Можно несколько", required: true,
+    opts: ["Ничего","Дискомфорт/покалывание справа под ребром","ЖКТ: тяжесть, вздутие","Головная боль","Спина / стопы","Признаки простуды"] },
+  { id: 768640494, title: "Что было сегодня?", hint: "Отметь всё, что было", required: false,
+    opts: ["Кофе","Жирное / жареное","5000+ шагов","Силовая тренировка","Алкоголь","Поздний прием пищи","Лег после 01:00","Весь день за экраном","Время на улице","Общение с близкими"] }
+];
 const TEXTS = [
   { id: 459596409,  title: "Что понравилось / запомнилось / зарядило?", ph: "Пара строк, необязательно…" },
   { id: 1747181437, title: "Что не понравилось / тянуло вниз?", ph: "Пара строк, необязательно…" }
@@ -193,19 +167,32 @@ document.getElementById("dateline").textContent = "Сегодня " + now.getDat
 
 const root = document.getElementById("form");
 
-function buildScale(s) {
+let cardIndex = 0;
+function stagger(card) {
+  card.style.animationDelay = Math.min(cardIndex * 70, 600) + "ms";
+  cardIndex++;
+}
+
+SCALES.forEach(s => {
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = '<div class="qrow"><div class="q">' + s.title + '</div><div class="bigval">—</div></div><div class="hint">' + s.hint + '</div>';
   const bigval = card.querySelector(".bigval");
+
   const r = document.createElement("input");
-  r.type = "range"; r.min = s.from; r.max = s.to; r.step = 1;
+  r.type = "range";
+  r.min = s.from;
+  r.max = s.to;
+  r.step = 1;
   r.value = Math.round((s.from + s.to) / 2);
+
   const setFill = () => {
     const pct = (r.value - s.from) / (s.to - s.from) * 100;
     r.style.setProperty("--p", pct + "%");
   };
   setFill();
+
+  let scrolled = false;
   r.addEventListener("input", () => {
     answers.scales[s.id] = +r.value;
     bigval.textContent = r.value;
@@ -213,18 +200,28 @@ function buildScale(s) {
     r.style.setProperty("--fillc", "var(--accent)");
     setFill();
     if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    refresh();
   });
+  r.addEventListener("change", () => {
+    if (!scrolled && card.nextElementSibling) {
+      scrolled = true;
+      setTimeout(() => {
+        card.nextElementSibling.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 250);
+    }
+  });
+
   const mm = document.createElement("div");
   mm.className = "minmax";
   mm.innerHTML = "<span>" + s.from + "</span><span>" + s.to + "</span>";
+
   card.appendChild(r);
   card.appendChild(mm);
-  return card;
-}
+  stagger(card);
+  root.appendChild(card);
+});
 
-function buildChips(c) {
-  if (!answers.checks[c.id]) answers.checks[c.id] = new Set();
+CHECKS.forEach(c => {
+  answers.checks[c.id] = new Set();
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = '<div class="q">' + c.title + '</div><div class="hint">' + c.hint + '</div>';
@@ -242,119 +239,50 @@ function buildChips(c) {
         set.add(o); b.classList.add("sel");
       }
       if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-      refresh();
     };
     wrap.appendChild(b);
   });
-  if (!c.noOther) {
-    const ob = document.createElement("button");
-    ob.textContent = "Другое…";
-    const oi = document.createElement("input");
-    oi.type = "text";
-    oi.placeholder = "Свой вариант";
-    oi.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;";
-    oi.oninput = () => { answers.others[c.id] = oi.value.trim(); refresh(); };
-    ob.onclick = () => {
-      const on = oi.style.display === "none";
-      oi.style.display = on ? "block" : "none";
-      ob.classList.toggle("sel", on);
-      if (on) oi.focus(); else { oi.value = ""; answers.others[c.id] = ""; }
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    };
-    wrap.appendChild(ob);
-    card.appendChild(wrap);
-    card.appendChild(oi);
-  } else {
-    card.appendChild(wrap);
-  }
-  return card;
-}
 
-function buildText(t) {
+  const ob = document.createElement("button");
+  ob.textContent = "Другое…";
+  const oi = document.createElement("input");
+  oi.type = "text";
+  oi.placeholder = "Свой вариант";
+  oi.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;";
+  oi.oninput = () => { answers.others[c.id] = oi.value.trim(); };
+  ob.onclick = () => {
+    const on = oi.style.display === "none";
+    oi.style.display = on ? "block" : "none";
+    ob.classList.toggle("sel", on);
+    if (on) oi.focus(); else { oi.value = ""; answers.others[c.id] = ""; }
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  };
+  wrap.appendChild(ob);
+
+  card.appendChild(wrap);
+  card.appendChild(oi);
+  stagger(card);
+  root.appendChild(card);
+});
+
+TEXTS.forEach(t => {
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = '<div class="q" style="margin-bottom:10px">' + t.title + '</div>';
   const ta = document.createElement("textarea");
   ta.placeholder = t.ph;
-  ta.oninput = () => { answers.texts[t.id] = ta.value; refresh(); };
+  ta.oninput = () => { answers.texts[t.id] = ta.value; };
   card.appendChild(ta);
-  return card;
-}
-
-const scalesDone = ids => ids.every(id => answers.scales[id] !== undefined);
-const symptomsDone = () => (answers.checks[SYMPTOMS.id] && answers.checks[SYMPTOMS.id].size > 0) || (answers.others[SYMPTOMS.id] || "").length > 0;
-
-const SECTIONS = [
-  { key: "day", title: "🌅 День", cards: () => [buildScale(Q.day), buildScale(Q.energy)],
-    total: 2, count: () => [Q.day.id, Q.energy.id].filter(id => answers.scales[id] !== undefined).length,
-    done: () => scalesDone([Q.day.id, Q.energy.id]) },
-  { key: "work", title: "💼 Работа", cards: () => [buildScale(Q.work), buildScale(Q.stress)],
-    total: 2, count: () => [Q.work.id, Q.stress.id].filter(id => answers.scales[id] !== undefined).length,
-    done: () => scalesDone([Q.work.id, Q.stress.id]) },
-  { key: "health", title: "🫀 Здоровье", cards: () => [buildScale(Q.anx), buildScale(Q.sleep), buildChips(SYMPTOMS)],
-    total: 3, count: () => [Q.anx.id, Q.sleep.id].filter(id => answers.scales[id] !== undefined).length + (symptomsDone() ? 1 : 0),
-    done: () => scalesDone([Q.anx.id, Q.sleep.id]) && symptomsDone() },
-  { key: "habits", title: "🚶 Привычки", cards: () => [buildChips(HABITS)],
-    total: null, count: () => (answers.checks[HABITS.id] ? answers.checks[HABITS.id].size : 0),
-    done: () => answers.checks[HABITS.id] && Array.from(answers.checks[HABITS.id]).some(v => HABITS.opts.includes(v)) },
-  { key: "rel", title: "👥 Отношения", cards: () => [buildChips(RELATIONS)],
-    total: null, count: () => (answers.checks[RELATIONS.id] && answers.checks[RELATIONS.id].has("Общение с близкими")) ? 1 : 0,
-    done: () => answers.checks[RELATIONS.id] && answers.checks[RELATIONS.id].has("Общение с близкими") },
-  { key: "mind", title: "📝 Мысли", cards: () => TEXTS.map(buildText),
-    total: null, count: () => TEXTS.filter(t => (answers.texts[t.id] || "").length > 0).length,
-    done: () => TEXTS.some(t => (answers.texts[t.id] || "").length > 0) }
-];
-
-const secEls = [];
-SECTIONS.forEach((s, i) => {
-  const sec = document.createElement("div");
-  sec.className = "section" + (i === 0 ? " open" : "");
-  sec.style.animationDelay = (i * 80) + "ms";
-  const head = document.createElement("button");
-  head.className = "sechead";
-  head.innerHTML = '<span>' + s.title + '</span><span class="secstate"></span>';
-  head.onclick = () => {
-    sec.classList.toggle("open");
-    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-  };
-  const body = document.createElement("div");
-  body.className = "secbody";
-  s.cards().forEach(c => body.appendChild(c));
-  sec.appendChild(head);
-  sec.appendChild(body);
-  root.appendChild(sec);
-  secEls.push(sec);
+  stagger(card);
+  root.appendChild(card);
 });
 
-const autoOpened = new Set([0]);
-function refresh() {
-  SECTIONS.forEach((s, i) => {
-    const state = secEls[i].querySelector(".secstate");
-    const done = s.done();
-    if (s.total) {
-      state.textContent = s.count() + "/" + s.total;
-    } else {
-      state.textContent = s.count() > 0 ? "✓" : "";
-    }
-    state.classList.toggle("done", !!done);
-    if (done && i + 1 < SECTIONS.length && !autoOpened.has(i + 1)) {
-      autoOpened.add(i + 1);
-      const next = secEls[i + 1];
-      if (!next.classList.contains("open")) {
-        next.classList.add("open");
-        setTimeout(() => next.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
-      }
-    }
-  });
-}
-refresh();
-
 function submitForm() {
-  const allScales = Object.values(Q).every(s => answers.scales[s.id] !== undefined);
+  const allScales = SCALES.every(s => answers.scales[s.id] !== undefined);
+  const reqChecks = CHECKS.filter(c => c.required).every(c => answers.checks[c.id].size > 0 || (answers.others[c.id] || "").length > 0);
   const err = document.getElementById("err");
-  if (!allScales || !symptomsDone()) {
+  if (!allScales || !reqChecks) {
     err.style.display = "block";
-    secEls.forEach((el, i) => { if (!SECTIONS[i].done() && (SECTIONS[i].total || SECTIONS[i].key === "health")) el.classList.add("open"); });
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
     return;
   }
@@ -371,12 +299,12 @@ function submitForm() {
     i.type = "hidden"; i.name = name; i.value = value;
     f.appendChild(i);
   };
-  Object.values(Q).forEach(s => add("entry." + s.id, answers.scales[s.id]));
-  [SYMPTOMS.id, HABITS.id].forEach(id => {
-    (answers.checks[id] || new Set()).forEach(v => add("entry." + id, v));
-    if ((answers.others[id] || "").length > 0) {
-      add("entry." + id, "__other_option__");
-      add("entry." + id + ".other_option_response", answers.others[id]);
+  SCALES.forEach(s => add("entry." + s.id, answers.scales[s.id]));
+  CHECKS.forEach(c => {
+    answers.checks[c.id].forEach(v => add("entry." + c.id, v));
+    if ((answers.others[c.id] || "").length > 0) {
+      add("entry." + c.id, "__other_option__");
+      add("entry." + c.id + ".other_option_response", answers.others[c.id]);
     }
   });
   TEXTS.forEach(t => { if (answers.texts[t.id]) add("entry." + t.id, answers.texts[t.id]); });
