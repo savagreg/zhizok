@@ -146,13 +146,7 @@ const DRILLS = [
     quick: [],
     themes: [
       { label: "Еда и напитки", opts: ["Кофе", "Жирное / жареное", "Поздний прием пищи"] },
-      { label: "Активность", opts: ["5000+ шагов", "Спорт", "Время на улице"] },
-      { label: "Контент", opts: ["Съемка", "Монтаж", "Публикация", "Сценарий"] },
-      { label: "Проекты", opts: ["Милана", "Бот", "ТГ-канал"] },
-      { label: "Саморазвитие", opts: ["Английский", "Фортепиано"] },
-      { label: "Отдых", opts: ["Полноценно отдыхал", "День без работы"] },
-      { label: "Режим и экран", opts: ["Лег после 01:00", "Весь день за экраном"] },
-      { label: "Общение", opts: ["Общение с близкими"] }
+      { label: "Активность", opts: ["5000+ шагов", "Спорт", "Время на улице"] }
     ],
     withText: { id: 459596409, label: "Что хочется выделить?", ph: "Что запомнилось, что порадовало, что тянуло вниз — пара строк…" } }
 ];
@@ -186,16 +180,10 @@ SCALES.forEach(s => {
     const b = document.createElement("button");
     b.textContent = v;
     b.onclick = () => {
-      const firstAnswer = answers.scales[s.id] === undefined;
       answers.scales[s.id] = v;
       row.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
       b.classList.add("sel");
       haptic();
-      if (firstAnswer && card.nextElementSibling) {
-        setTimeout(() => {
-          card.nextElementSibling.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 250);
-      }
     };
     row.appendChild(b);
   }
