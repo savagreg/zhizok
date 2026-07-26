@@ -140,21 +140,20 @@ const DRILLS = [
     themes: [
       { label: "Живот и ЖКТ", opts: ["Дискомфорт/покалывание справа под ребром", "ЖКТ: тяжесть, вздутие"] },
       { label: "Голова", opts: ["Головная боль"] },
-      { label: "Тело", opts: ["Спина / стопы"] }
+      { label: "Тело", opts: ["Спина", "Стопы"] }
     ] },
-  { id: 768640494, title: "Что по еде?", hint: "Выбери тему, внутри отметь нужное", required: false,
+  { id: 768640494, title: "Общее по дню", hint: "Выбери тему, внутри отметь нужное", required: false,
     quick: [],
     themes: [
       { label: "Еда и напитки", opts: ["Кофе", "Жирное / жареное", "Поздний прием пищи"] },
       { label: "Активность", opts: ["5000+ шагов", "Спорт", "Время на улице"] },
       { label: "Режим и экран", opts: ["Лег после 01:00", "Весь день за экраном"] },
       { label: "Общение", opts: ["Общение с близкими"] }
-    ] }
+    ],
+    withText: { id: 459596409, label: "Что хочется выделить?", ph: "Что запомнилось, что порадовало, что тянуло вниз — пара строк…" } }
 ];
 
-const TEXTS = [
-  { id: 459596409,  title: "Что хочется выделить?", ph: "Что запомнилось, что порадовало, что тянуло вниз — пара строк…" }
-];
+const TEXTS = [];
 
 const answers = { scales: {}, checks: {}, texts: {}, others: {} };
 const tg = window.Telegram && window.Telegram.WebApp;
@@ -286,6 +285,19 @@ DRILLS.forEach(c => {
   showThemes();
   card.appendChild(wrap);
   card.appendChild(oi);
+
+  if (c.withText) {
+    const tl = document.createElement("div");
+    tl.className = "q";
+    tl.style.cssText = "margin-top:16px;margin-bottom:8px;";
+    tl.textContent = c.withText.label;
+    const ta = document.createElement("textarea");
+    ta.placeholder = c.withText.ph;
+    ta.oninput = () => { answers.texts[c.withText.id] = ta.value; };
+    card.appendChild(tl);
+    card.appendChild(ta);
+  }
+
   stagger(card);
   root.appendChild(card);
 });
@@ -330,6 +342,9 @@ function submitForm() {
     if ((answers.others[c.id] || "").length > 0) {
       add("entry." + c.id, "__other_option__");
       add("entry." + c.id + ".other_option_response", answers.others[c.id]);
+    }
+    if (c.withText && (answers.texts[c.withText.id] || "").length > 0) {
+      add("entry." + c.withText.id, answers.texts[c.withText.id]);
     }
   });
   TEXTS.forEach(t => { if (answers.texts[t.id]) add("entry." + t.id, answers.texts[t.id]); });
