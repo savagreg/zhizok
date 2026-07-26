@@ -44,21 +44,35 @@
   #done { animation: rise .45s ease forwards; }
   .q { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
   .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
-  .scale { display: flex; flex-wrap: wrap; gap: 6px; }
-  .scale button {
-    flex: 1 0 calc(20% - 6px);
-    min-width: 44px;
+  .qrow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .bigval { font-size: 24px; font-weight: 700; color: var(--muted); min-width: 40px; text-align: right; transition: color .2s; }
+  .bigval.set { color: var(--accent); }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
     height: 44px;
-    border-radius: 12px;
-    border: 1px solid var(--line);
-    background: var(--card2);
-    color: var(--text);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
+    background: transparent;
+    margin-top: 4px;
+    --p: 50%;
   }
-  .scale button.sel { background: var(--accent); border-color: var(--accent); color: #0f1512; }
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--fillc, var(--card2)) var(--p), var(--card2) var(--p));
+    border: 1px solid var(--line);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e9edee;
+    border: 3px solid var(--accent);
+    margin-top: -11px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.45);
+  }
+  .minmax { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chips button {
     padding: 10px 14px;
@@ -162,27 +176,46 @@ function stagger(card) {
 SCALES.forEach(s => {
   const card = document.createElement("div");
   card.className = "card";
-  card.innerHTML = '<div class="q">' + s.title + '</div><div class="hint">' + s.hint + '</div>';
-  const row = document.createElement("div");
-  row.className = "scale";
-  for (let v = s.from; v <= s.to; v++) {
-    const b = document.createElement("button");
-    b.textContent = v;
-    b.onclick = () => {
-      const firstAnswer = answers.scales[s.id] === undefined;
-      answers.scales[s.id] = v;
-      row.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
-      b.classList.add("sel");
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-      if (firstAnswer && card.nextElementSibling) {
-        setTimeout(() => {
-          card.nextElementSibling.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 250);
-      }
-    };
-    row.appendChild(b);
-  }
-  card.appendChild(row);
+  card.innerHTML = '<div class="qrow"><div class="q">' + s.title + '</div><div class="bigval">—</div></div><div class="hint">' + s.hint + '</div>';
+  const bigval = card.querySelector(".bigval");
+
+  const r = document.createElement("input");
+  r.type = "range";
+  r.min = s.from;
+  r.max = s.to;
+  r.step = 1;
+  r.value = Math.round((s.from + s.to) / 2);
+
+  const setFill = () => {
+    const pct = (r.value - s.from) / (s.to - s.from) * 100;
+    r.style.setProperty("--p", pct + "%");
+  };
+  setFill();
+
+  let scrolled = false;
+  r.addEventListener("input", () => {
+    answers.scales[s.id] = +r.value;
+    bigval.textContent = r.value;
+    bigval.classList.add("set");
+    r.style.setProperty("--fillc", "var(--accent)");
+    setFill();
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  });
+  r.addEventListener("change", () => {
+    if (!scrolled && card.nextElementSibling) {
+      scrolled = true;
+      setTimeout(() => {
+        card.nextElementSibling.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 250);
+    }
+  });
+
+  const mm = document.createElement("div");
+  mm.className = "minmax";
+  mm.innerHTML = "<span>" + s.from + "</span><span>" + s.to + "</span>";
+
+  card.appendChild(r);
+  card.appendChild(mm);
   stagger(card);
   root.appendChild(card);
 });
