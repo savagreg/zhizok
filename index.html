@@ -143,7 +143,7 @@ const TEXTS = [
   { id: 1747181437, title: "Что не понравилось / тянуло вниз?", ph: "Пара строк, необязательно…" }
 ];
 
-const answers = { scales: {}, checks: {}, texts: {} };
+const answers = { scales: {}, checks: {}, texts: {}, others: {} };
 const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
@@ -209,7 +209,25 @@ CHECKS.forEach(c => {
     };
     wrap.appendChild(b);
   });
+
+  const ob = document.createElement("button");
+  ob.textContent = "Другое…";
+  const oi = document.createElement("input");
+  oi.type = "text";
+  oi.placeholder = "Свой вариант";
+  oi.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;";
+  oi.oninput = () => { answers.others[c.id] = oi.value.trim(); };
+  ob.onclick = () => {
+    const on = oi.style.display === "none";
+    oi.style.display = on ? "block" : "none";
+    ob.classList.toggle("sel", on);
+    if (on) oi.focus(); else { oi.value = ""; answers.others[c.id] = ""; }
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  };
+  wrap.appendChild(ob);
+
   card.appendChild(wrap);
+  card.appendChild(oi);
   stagger(card);
   root.appendChild(card);
 });
@@ -228,7 +246,7 @@ TEXTS.forEach(t => {
 
 function submitForm() {
   const allScales = SCALES.every(s => answers.scales[s.id] !== undefined);
-  const reqChecks = CHECKS.filter(c => c.required).every(c => answers.checks[c.id].size > 0);
+  const reqChecks = CHECKS.filter(c => c.required).every(c => answers.checks[c.id].size > 0 || (answers.others[c.id] || "").length > 0);
   const err = document.getElementById("err");
   if (!allScales || !reqChecks) {
     err.style.display = "block";
@@ -249,7 +267,13 @@ function submitForm() {
     f.appendChild(i);
   };
   SCALES.forEach(s => add("entry." + s.id, answers.scales[s.id]));
-  CHECKS.forEach(c => answers.checks[c.id].forEach(v => add("entry." + c.id, v)));
+  CHECKS.forEach(c => {
+    answers.checks[c.id].forEach(v => add("entry." + c.id, v));
+    if ((answers.others[c.id] || "").length > 0) {
+      add("entry." + c.id, "__other_option__");
+      add("entry." + c.id + ".other_option_response", answers.others[c.id]);
+    }
+  });
   TEXTS.forEach(t => { if (answers.texts[t.id]) add("entry." + t.id, answers.texts[t.id]); });
 
   const iframe = document.createElement("iframe");
