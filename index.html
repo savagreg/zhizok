@@ -127,6 +127,10 @@
 <script>
 const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScHqljL698DGsNmir_faD6NED3xI06AO3XWW9hojHPWC2YL0w/formResponse";
 
+// Вопрос-дата «За какой день эта запись?» в форме (добавлен 04.08.2026).
+// null = дата не отправляется (мини-апп работает как раньше).
+const DATE_ENTRY = 1386198610;
+
 const SCALES = [
   { id: 1251479055, title: "Оценка дня", hint: "1 — худший день, 10 — лучший", from: 1, to: 10 },
   { id: 352003469,  title: "Энергия и продуктивность", hint: "1 — без сил и день впустую, 10 — полон сил и всё успел", from: 1, to: 10 },
@@ -306,6 +310,75 @@ TEXTS.forEach(t => {
   root.appendChild(card);
 });
 
+// ---- «За какой день эта запись?» — в самом конце, перед отправкой ----
+// Правило 4 утра: до 04:00 «сегодня» считается прошедшим днём.
+const effToday = new Date(Date.now() - 4 * 3600 * 1000);
+effToday.setHours(0, 0, 0, 0);
+let targetDate = new Date(effToday);
+
+const fmtD = d => d.getDate() + " " + months[d.getMonth()];
+const isoD = d => d.getFullYear() + "-" +
+  String(d.getMonth() + 1).padStart(2, "0") + "-" +
+  String(d.getDate()).padStart(2, "0");
+
+if (DATE_ENTRY) {
+  const yest = new Date(effToday); yest.setDate(yest.getDate() - 1);
+
+  const dcard = document.createElement("div");
+  dcard.className = "card";
+  dcard.innerHTML = '<div class="q">За какой день эта запись?</div>' +
+    '<div class="hint">Обычно — сегодня. Если пропустил день, выбери его здесь. До 4 утра «сегодня» — это ещё прошедший день.</div>';
+
+  const dwrap = document.createElement("div");
+  dwrap.className = "chips";
+
+  const di = document.createElement("input");
+  di.type = "date";
+  di.value = isoD(effToday);
+  di.max = isoD(effToday);
+  di.min = "2026-07-26";
+  di.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;color-scheme:dark;";
+
+  let mode = "today"; // today | yest | custom
+
+  function renderDateChips() {
+    dwrap.innerHTML = "";
+    const mk = (label, m, on) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      if (mode === m) b.classList.add("sel");
+      b.onclick = () => { haptic(); on(); renderDateChips(); };
+      dwrap.appendChild(b);
+    };
+    mk("Сегодня · " + fmtD(effToday), "today", () => {
+      mode = "today"; targetDate = new Date(effToday); di.style.display = "none";
+    });
+    mk("Вчера · " + fmtD(yest), "yest", () => {
+      mode = "yest"; targetDate = new Date(yest); di.style.display = "none";
+    });
+    mk(mode === "custom" ? "Другой день · " + fmtD(targetDate) : "Другой день…", "custom", () => {
+      mode = "custom"; di.style.display = "block";
+      const p = di.value.split("-");
+      targetDate = new Date(+p[0], +p[1] - 1, +p[2]);
+    });
+  }
+
+  di.onchange = () => {
+    if (!di.value) return;
+    const p = di.value.split("-");
+    targetDate = new Date(+p[0], +p[1] - 1, +p[2]);
+    if (targetDate > effToday) { targetDate = new Date(effToday); di.value = isoD(effToday); }
+    haptic();
+    renderDateChips();
+  };
+
+  renderDateChips();
+  dcard.appendChild(dwrap);
+  dcard.appendChild(di);
+  stagger(dcard);
+  root.appendChild(dcard);
+}
+
 function submitForm() {
   const allScales = SCALES.every(s => answers.scales[s.id] !== undefined);
   const reqChecks = DRILLS.filter(c => c.required).every(c => answers.checks[c.id].size > 0 || (answers.others[c.id] || "").length > 0);
@@ -340,6 +413,11 @@ function submitForm() {
     }
   });
   TEXTS.forEach(t => { if (answers.texts[t.id]) add("entry." + t.id, answers.texts[t.id]); });
+  if (DATE_ENTRY) {
+    add("entry." + DATE_ENTRY + "_year", targetDate.getFullYear());
+    add("entry." + DATE_ENTRY + "_month", targetDate.getMonth() + 1);
+    add("entry." + DATE_ENTRY + "_day", targetDate.getDate());
+  }
 
   const iframe = document.createElement("iframe");
   iframe.name = "hidden_iframe";
@@ -351,6 +429,10 @@ function submitForm() {
   setTimeout(() => {
     document.getElementById("main").style.display = "none";
     document.getElementById("done").style.display = "block";
+    if (DATE_ENTRY && +targetDate !== +effToday) {
+      document.querySelector("#done h2").textContent = "День записан задним числом";
+      document.querySelector("#done p").textContent = "Сохранил за " + fmtD(targetDate) + ". Спасибо.";
+    }
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     if (tg) setTimeout(() => tg.close(), 2500);
   }, 1200);
