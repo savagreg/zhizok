@@ -113,6 +113,7 @@
 <div id="main">
   <h1 id="greet">Как прошел день?</h1>
   <div class="sub" id="dateline"></div>
+  <div class="chips" id="daybar" style="margin-bottom:20px"></div>
   <div id="form"></div>
   <button class="submit" id="send" onclick="submitForm()">Сохранить день</button>
   <div class="err" id="err">Заполни, пожалуйста, все шкалы и «Что беспокоило»</div>
@@ -130,6 +131,21 @@ const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScHqljL698DGsNmir_faD
 // Вопрос-дата «За какой день эта запись?» в форме (добавлен 04.08.2026).
 // null = дата не отправляется (мини-апп работает как раньше).
 const DATE_ENTRY = 1386198610;
+
+// «Итог месяца» (вопросы добавлены в форму 04.08.2026).
+// Раздел показывается сам в последние 2 дня месяца + всегда по кнопке сверху.
+const MONTHLY = {
+  scale: { id: 1682978531, title: "Оценка месяца", hint: "1 — провальный, 10 — лучший" },
+  texts: [
+    { id: 611915943,  title: "Чем запомнится месяц?", ph: "Главные события, люди, моменты — и в работе, и в личном…" },
+    { id: 2019043474, title: "Чем горжусь за месяц?", ph: "Достижения, закрытые гештальты, преодоления…" },
+    { id: 159415904,  title: "Что забирало силы?", ph: "Что мешало, бесило, выматывало…" }
+  ],
+  checks: { id: 1466845971, title: "Где был прогресс?",
+    opts: ["Финансы", "Контент и соцсети", "Здоровье", "Нетворкинг",
+           "Саморазвитие", "Путешествия", "Личное", "Проекты"] },
+  focus: { id: 1304395212, title: "Фокус следующего месяца?", ph: "1–3 главные цели…" }
+};
 
 const SCALES = [
   { id: 1251479055, title: "Оценка дня", hint: "1 — худший день, 10 — лучший", from: 1, to: 10 },
@@ -163,8 +179,41 @@ if (tg) { tg.ready(); tg.expand(); }
 const haptic = () => { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); };
 
 const months = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-const now = new Date();
-document.getElementById("dateline").textContent = "Сегодня " + now.getDate() + " " + months[now.getMonth()] + ", пара минут — и готово";
+
+// ---- Выбор дня записи — сверху, до всех вопросов ----
+// Правило 4 утра: до 04:00 «сегодня» считается прошедшим днём.
+const effToday = new Date(Date.now() - 4 * 3600 * 1000);
+effToday.setHours(0, 0, 0, 0);
+const yestD = new Date(effToday); yestD.setDate(yestD.getDate() - 1);
+let targetDate = new Date(effToday);
+const fmtD = d => d.getDate() + " " + months[d.getMonth()];
+
+document.getElementById("dateline").textContent = "Пара минут — и готово. Запись за:";
+const daybar = document.getElementById("daybar");
+let dayMode = "today";
+function renderDaybar() {
+  daybar.innerHTML = "";
+  const mk = (label, m, d) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    if (dayMode === m) b.classList.add("sel");
+    b.onclick = () => { dayMode = m; targetDate = new Date(d); haptic(); renderDaybar(); };
+    daybar.appendChild(b);
+  };
+  mk("Сегодня · " + fmtD(effToday), "today", effToday);
+  mk("Вчера · " + fmtD(yestD), "yest", yestD);
+  const mb = document.createElement("button");
+  mb.className = "theme" + (monthlyOn ? " has" : "");
+  mb.textContent = monthlyOn ? "Итог месяца ✓" : "Итог месяца";
+  mb.onclick = () => {
+    monthlyOn = !monthlyOn;
+    monthlyWrap.style.display = monthlyOn ? "block" : "none";
+    haptic();
+    renderDaybar();
+    if (monthlyOn) setTimeout(() => monthlyWrap.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+  daybar.appendChild(mb);
+}
 
 const root = document.getElementById("form");
 
@@ -310,74 +359,77 @@ TEXTS.forEach(t => {
   root.appendChild(card);
 });
 
-// ---- «За какой день эта запись?» — в самом конце, перед отправкой ----
-// Правило 4 утра: до 04:00 «сегодня» считается прошедшим днём.
-const effToday = new Date(Date.now() - 4 * 3600 * 1000);
-effToday.setHours(0, 0, 0, 0);
-let targetDate = new Date(effToday);
+// ---- Раздел «Итог месяца» ----
+const mAns = { scale: undefined, texts: {}, checks: new Set() };
+const lastDayOfMonth = new Date(effToday.getFullYear(), effToday.getMonth() + 1, 0).getDate();
+let monthlyOn = effToday.getDate() >= lastDayOfMonth - 1; // авто в последние 2 дня месяца
 
-const fmtD = d => d.getDate() + " " + months[d.getMonth()];
-const isoD = d => d.getFullYear() + "-" +
-  String(d.getMonth() + 1).padStart(2, "0") + "-" +
-  String(d.getDate()).padStart(2, "0");
+const monthlyWrap = document.createElement("div");
+monthlyWrap.id = "monthly";
+monthlyWrap.style.display = monthlyOn ? "block" : "none";
 
-if (DATE_ENTRY) {
-  const yest = new Date(effToday); yest.setDate(yest.getDate() - 1);
+const mHead = document.createElement("div");
+mHead.innerHTML = '<h1 style="font-size:19px;margin:26px 0 4px">Итог месяца</h1>' +
+  '<div class="sub" style="margin-bottom:16px">Пару раз в месяц, честно и крупными мазками. Заполняется вместе с днём.</div>';
+monthlyWrap.appendChild(mHead);
 
-  const dcard = document.createElement("div");
-  dcard.className = "card";
-  dcard.innerHTML = '<div class="q">За какой день эта запись?</div>' +
-    '<div class="hint">Обычно — сегодня. Если пропустил день, выбери его здесь. До 4 утра «сегодня» — это ещё прошедший день.</div>';
-
-  const dwrap = document.createElement("div");
-  dwrap.className = "chips";
-
-  const di = document.createElement("input");
-  di.type = "date";
-  di.value = isoD(effToday);
-  di.max = isoD(effToday);
-  di.min = "2026-07-26";
-  di.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:12px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;color-scheme:dark;";
-
-  let mode = "today"; // today | yest | custom
-
-  function renderDateChips() {
-    dwrap.innerHTML = "";
-    const mk = (label, m, on) => {
-      const b = document.createElement("button");
-      b.textContent = label;
-      if (mode === m) b.classList.add("sel");
-      b.onclick = () => { haptic(); on(); renderDateChips(); };
-      dwrap.appendChild(b);
+// шкала «Оценка месяца»
+{
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = '<div class="q">' + MONTHLY.scale.title + '</div><div class="hint">' + MONTHLY.scale.hint + '</div>';
+  const row = document.createElement("div");
+  row.className = "scale";
+  for (let v = 1; v <= 10; v++) {
+    const b = document.createElement("button");
+    b.textContent = v;
+    b.onclick = () => {
+      mAns.scale = v;
+      row.querySelectorAll("button").forEach(x => x.classList.remove("sel"));
+      b.classList.add("sel");
+      haptic();
     };
-    mk("Сегодня · " + fmtD(effToday), "today", () => {
-      mode = "today"; targetDate = new Date(effToday); di.style.display = "none";
-    });
-    mk("Вчера · " + fmtD(yest), "yest", () => {
-      mode = "yest"; targetDate = new Date(yest); di.style.display = "none";
-    });
-    mk(mode === "custom" ? "Другой день · " + fmtD(targetDate) : "Другой день…", "custom", () => {
-      mode = "custom"; di.style.display = "block";
-      const p = di.value.split("-");
-      targetDate = new Date(+p[0], +p[1] - 1, +p[2]);
-    });
+    row.appendChild(b);
   }
-
-  di.onchange = () => {
-    if (!di.value) return;
-    const p = di.value.split("-");
-    targetDate = new Date(+p[0], +p[1] - 1, +p[2]);
-    if (targetDate > effToday) { targetDate = new Date(effToday); di.value = isoD(effToday); }
-    haptic();
-    renderDateChips();
-  };
-
-  renderDateChips();
-  dcard.appendChild(dwrap);
-  dcard.appendChild(di);
-  stagger(dcard);
-  root.appendChild(dcard);
+  card.appendChild(row);
+  monthlyWrap.appendChild(card);
 }
+
+// галочки «Где был прогресс?»
+{
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = '<div class="q">' + MONTHLY.checks.title + '</div><div class="hint">Отметь сферы, где реально сдвинулся</div>';
+  const wrap = document.createElement("div");
+  wrap.className = "chips";
+  MONTHLY.checks.opts.forEach(o => {
+    const b = document.createElement("button");
+    b.textContent = o;
+    b.onclick = () => {
+      if (mAns.checks.has(o)) { mAns.checks.delete(o); b.classList.remove("sel"); }
+      else { mAns.checks.add(o); b.classList.add("sel"); }
+      haptic();
+    };
+    wrap.appendChild(b);
+  });
+  card.appendChild(wrap);
+  monthlyWrap.appendChild(card);
+}
+
+// тексты месяца
+MONTHLY.texts.concat([MONTHLY.focus]).forEach(t => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = '<div class="q" style="margin-bottom:10px">' + t.title + '</div>';
+  const ta = document.createElement("textarea");
+  ta.placeholder = t.ph;
+  ta.oninput = () => { mAns.texts[t.id] = ta.value; };
+  card.appendChild(ta);
+  monthlyWrap.appendChild(card);
+});
+
+root.appendChild(monthlyWrap);
+renderDaybar();
 
 function submitForm() {
   const allScales = SCALES.every(s => answers.scales[s.id] !== undefined);
@@ -418,6 +470,14 @@ function submitForm() {
     add("entry." + DATE_ENTRY + "_month", targetDate.getMonth() + 1);
     add("entry." + DATE_ENTRY + "_day", targetDate.getDate());
   }
+  let monthlySent = false;
+  if (monthlyOn) {
+    if (mAns.scale !== undefined) { add("entry." + MONTHLY.scale.id, mAns.scale); monthlySent = true; }
+    mAns.checks.forEach(v => { add("entry." + MONTHLY.checks.id, v); monthlySent = true; });
+    MONTHLY.texts.concat([MONTHLY.focus]).forEach(t => {
+      if ((mAns.texts[t.id] || "").trim().length > 0) { add("entry." + t.id, mAns.texts[t.id]); monthlySent = true; }
+    });
+  }
 
   const iframe = document.createElement("iframe");
   iframe.name = "hidden_iframe";
@@ -432,6 +492,9 @@ function submitForm() {
     if (DATE_ENTRY && +targetDate !== +effToday) {
       document.querySelector("#done h2").textContent = "День записан задним числом";
       document.querySelector("#done p").textContent = "Сохранил за " + fmtD(targetDate) + ". Спасибо.";
+    }
+    if (monthlySent) {
+      document.querySelector("#done h2").textContent = "День и итог месяца записаны";
     }
     if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     if (tg) setTimeout(() => tg.close(), 2500);
