@@ -386,7 +386,7 @@ DRILLS.forEach(c => {
 });
 
 // ---- Экран «Итоги месяца» ----
-const mAns = { scale: undefined, texts: {}, checks: new Set() };
+const mAns = { scale: undefined, texts: {}, checks: new Set(), other: "" };
 const mroot = document.getElementById("monthlyForm");
 
 {
@@ -428,7 +428,24 @@ const mroot = document.getElementById("monthlyForm");
     };
     wrap.appendChild(b);
   });
+  const moi = document.createElement("input");
+  moi.type = "text";
+  moi.placeholder = "Свой вариант";
+  moi.style.cssText = "display:none;width:100%;margin-top:10px;background:var(--card2);border:1px solid var(--line);border-radius:14px;color:var(--text);font-size:15px;font-family:inherit;padding:11px 12px;outline:none;box-sizing:border-box;";
+  moi.oninput = () => { mAns.other = moi.value.trim(); };
+  let mOtherOn = false;
+  const ob = document.createElement("button");
+  ob.textContent = "Другое…";
+  ob.onclick = () => {
+    mOtherOn = !mOtherOn;
+    ob.classList.toggle("sel", mOtherOn);
+    moi.style.display = mOtherOn ? "block" : "none";
+    if (mOtherOn) moi.focus(); else { moi.value = ""; mAns.other = ""; }
+    haptic();
+  };
+  wrap.appendChild(ob);
   card.appendChild(wrap);
+  card.appendChild(moi);
   mroot.appendChild(card);
 }
 
@@ -526,6 +543,10 @@ document.getElementById("sendMonthly").onclick = () => {
   buildAndPost(add => {
     add("entry." + MONTHLY.scale.id, mAns.scale);
     mAns.checks.forEach(v => add("entry." + MONTHLY.checks.id, v));
+    if (mAns.other.length > 0) {
+      add("entry." + MONTHLY.checks.id, "__other_option__");
+      add("entry." + MONTHLY.checks.id + ".other_option_response", mAns.other);
+    }
     MONTHLY.texts.concat([MONTHLY.focus]).forEach(t => {
       if ((mAns.texts[t.id] || "").trim().length > 0) add("entry." + t.id, mAns.texts[t.id]);
     });
